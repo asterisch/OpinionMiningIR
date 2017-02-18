@@ -55,7 +55,7 @@ public class CreateInverted
         Document doc;
 
         BufferedReader in;
-            File folder = new File(data_path);
+        File folder = new File(data_path);
             for (File directory : folder.listFiles()) {
                 if (directory.isDirectory()) {
                     System.out.println("Analyzing: " + directory.getName());
@@ -71,9 +71,10 @@ public class CreateInverted
                             doc.add(new Field("ID", doc_id, TextField.TYPE_STORED));
                             doc.add(new Field("text", in.readLine(), TextField.TYPE_NOT_STORED));
                             doc.add(new Field("score", String.valueOf(score), TextField.TYPE_STORED));
-                            in = null;
+
                             iwriter.addDocument(doc);
                             doc = null;
+                            in = null;
                             count++;
                         }
 

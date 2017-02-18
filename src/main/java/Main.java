@@ -61,16 +61,17 @@ public class Main {
         TermsEnum termsEnum = terms.iterator();
         BytesRef t = termsEnum.next();
         HashSet<Integer> scores;
+        TermQuery q;TotalHitCountCollector th;TopDocs docs;Document doc;
         while (t != null) {
             scores = new HashSet<Integer>();
-            TermQuery q = new TermQuery(new Term("text", t.utf8ToString()));
-            TotalHitCountCollector h = new TotalHitCountCollector();
-             searcher.search(q,h);
-            TopDocs topdocs = searcher.search(q,Math.max(1,h.getTotalHits()));
+            q = new TermQuery(new Term("text", t.utf8ToString()));
+            th = new TotalHitCountCollector();
+            searcher.search(q,th);
+            docs = searcher.search(q,Math.max(1,th.getTotalHits()));
             System.out.printf(t.utf8ToString()+" docs:");
-            for(int i=0;i<topdocs.scoreDocs.length;i++)
+            for(int i=0;i<docs.scoreDocs.length;i++)
             {
-                int id=topdocs.scoreDocs[i].doc;
+                int id=docs.scoreDocs[i].doc;
                 Document rdoc = searcher.doc(id);
                 scores.add(Integer.valueOf(rdoc.get("ID")));
             }
