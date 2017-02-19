@@ -67,6 +67,7 @@ public class KnnImplementation {
         }
     }
 
+
     /**
      * Creates an ArrayList with Review(is a doc) where every Review has it's Doc_ID and it's new Class
      * with KNN implementation
@@ -91,6 +92,7 @@ public class KnnImplementation {
             results.add(i,r1);
             i++;
         }
+
         return results;
     }
 

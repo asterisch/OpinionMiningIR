@@ -1,7 +1,9 @@
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
+import com.sun.org.apache.regexp.internal.RE;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Need to find similarities to use the method correctly
@@ -44,9 +46,27 @@ public class Knn {
         KnnImplementation knn=new KnnImplementation(similarities);
         knn.findNeighbors();
         results=knn.findClass();
-        for (Review r:results) {
-            //Print to out file
-            System.out.println("Doc's ID=" + r.get_id() +" Doc's Class=" +r.get_class());
+
+        Collections.sort(results, new Comparator<Review>() {
+            @Override
+            public int compare(Review review2, Review review1)
+            {
+
+                return  review2.get_id() - (review1.get_id());
+            }
+        });
+
+        try {
+            BufferedWriter out = new BufferedWriter(new FileWriter("predictions.txt"));
+            for (Review r:results) {
+                //Print to out file
+                System.out.println("Doc's ID=" + r.get_id() +" Doc's Class=" +r.get_class());
+                out.write(r.get_id()+ " " + r.get_class());
+                out.newLine();
+            }
+            out.close();
+        }catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
