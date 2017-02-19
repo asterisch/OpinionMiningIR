@@ -28,26 +28,31 @@ public class KnnImplementation {
     public KnnImplementation(HashMap<Review,HashSet<HashMap<Review,Double>>> sim) {
 
         neighbors = new ArrayList<Review>(K);
-        results = new ArrayList<Review>(K);
+        results = new ArrayList<Review>();
         neighborsMap= new HashMap<Review,ArrayList<Review>>();
         maxKSimilarities= new ArrayList<Double>(K);
         for (int i=0;i<K;i++) {
-            maxKSimilarities.add((double) 0);
+            maxKSimilarities.add(i,(double) 0);
         }
         similarities= new HashMap<Review, HashSet<HashMap<Review,Double>>>(sim);
     }
 
     public void findNeighbors() {
             for (Map.Entry<Review, HashSet<HashMap<Review,Double>>> entry : similarities.entrySet()) {
+                for (int b=0;b<K;b++) {
+                    maxKSimilarities.add(b,(double) 0);
+                    //System.out.println(maxKSimilarities.get(i));
+                }
                 Review key = entry.getKey();
                 HashSet<HashMap<Review,Double>> value = entry.getValue();
                 for (HashMap<Review,Double> r : value) {
                     for (Map.Entry<Review,Double> s:r.entrySet()) {
                         Review key2 = s.getKey();
                         Double value2 = s.getValue();
+                        //System.out.println("Doc's ID=" + key.get_id());
                         for (int i=0;i<K;i++) {
                             if (maxKSimilarities.get(i) <value2) {
-                                neighbors.add(key2);
+                                neighbors.add(i,key2);
                                 //System.out.println("Doc's ID=" + key.get_id() +" neighbor's ID=" +key2.get_id());
                                 maxKSimilarities.add(i,value2);
                                 break;
@@ -60,11 +65,12 @@ public class KnnImplementation {
     }
 
     /**
-     * Creaters an ArrayList with Review(is a doc) where every Review has it's Doc_ID and it's new Class
+     * Creates an ArrayList with Review(is a doc) where every Review has it's Doc_ID and it's new Class
      * with KNN implementation
      * @return an ArrayList
      */
     public ArrayList<Review> findClass() {
+        System.out.println(neighbors.size());
         for (Map.Entry<Review, ArrayList<Review>> entry : neighborsMap.entrySet()) {
             int newClass,i=0;
             positives = 0;
@@ -72,6 +78,7 @@ public class KnnImplementation {
             Review key = entry.getKey();
             ArrayList<Review> value = entry.getValue();
             for (Review r : value) {
+                System.out.println("! Doc's ID=" + key.get_id() +" neighbor's ID=" +r.get_id());
                 if (r.get_class() == 1) //1 for positive
                     positives++;
                 else
