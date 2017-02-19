@@ -22,13 +22,12 @@ public class Knn {
             double x=0.0;
             HashMap<Review,Double> fake1=new HashMap<Review, Double>();
             Review rFake=new Review(0,j);
-            Review rFake2=new Review(0,0);
-           //System.out.println("Doc's ID=" + rFake.get_id());
+            Review rFake2;
             for (int b=0;b<20;b++) {
-
+                if (b%2==0) //zugo
                 rFake2=new Review(0,b);
+                else  rFake2=new Review(1,b);
                 fake1.put(rFake2, (x/20.0));
-               //System.out.println("neighbors's ID=" + rFake2.get_id()+" sim="+( x/20.0));
                 x+=1;
             }
 
@@ -37,11 +36,10 @@ public class Knn {
 
             similarities.put(rFake,fake2);
 
-           // System.out.println();
         }
 
+        //Needs similarities hashMap
         ArrayList<Review> results;
-        //results= new ArrayList<Review>(K);
 
         KnnImplementation knn=new KnnImplementation(similarities);
         knn.findNeighbors();

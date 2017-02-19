@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Needs one HashMap with Review(A doc on test) with many pairs of other docs and their similarities
@@ -17,7 +14,7 @@ public class KnnImplementation {
     private ArrayList<Review> neighbors;
     private ArrayList<Review> results;
     private HashMap<Review,ArrayList<Review>> neighborsMap;
-    private ArrayList<Double> maxKSimilarities;
+    private LinkedHashMap<Review,Double> maxKSimilarities;
     private HashMap<Review,HashSet<HashMap<Review,Double>>> similarities; //Integer=similarity
     private final int K = 5;
 
@@ -30,18 +27,16 @@ public class KnnImplementation {
         neighbors = new ArrayList<Review>(K);
         results = new ArrayList<Review>();
         neighborsMap= new HashMap<Review,ArrayList<Review>>();
-        maxKSimilarities= new ArrayList<Double>(K);
-        for (int i=0;i<K;i++) {
-            maxKSimilarities.add(i,(double) 0);
-        }
+        maxKSimilarities= new LinkedHashMap<Review, Double>(K);
+
         similarities= new HashMap<Review, HashSet<HashMap<Review,Double>>>(sim);
     }
 
     public void findNeighbors() {
             for (Map.Entry<Review, HashSet<HashMap<Review,Double>>> entry : similarities.entrySet()) {
                 for (int b=0;b<K;b++) {
-                    maxKSimilarities.add(b,(double) 0);
-                    //System.out.println(maxKSimilarities.get(i));
+                    maxKSimilarities.clear();
+                    neighbors.clear();
                 }
                 Review key = entry.getKey();
                 HashSet<HashMap<Review,Double>> value = entry.getValue();
@@ -49,18 +44,26 @@ public class KnnImplementation {
                     for (Map.Entry<Review,Double> s:r.entrySet()) {
                         Review key2 = s.getKey();
                         Double value2 = s.getValue();
-                        //System.out.println("Doc's ID=" + key.get_id());
-                        for (int i=0;i<K;i++) {
-                            if (maxKSimilarities.get(i) <value2) {
-                                neighbors.add(i,key2);
-                                //System.out.println("Doc's ID=" + key.get_id() +" neighbor's ID=" +key2.get_id());
-                                maxKSimilarities.add(i,value2);
-                                break;
+                        if (maxKSimilarities.size() < K) {
+                                maxKSimilarities.put(key2, value2);
+                        }
+                        else{
+                                for (Map.Entry<Review,Double> s2:maxKSimilarities.entrySet()) {
+                                    Review key4 = s2.getKey();
+                                    Double value4 = s2.getValue();
+                                    if (maxKSimilarities.get(key4) < value2) {
+                                        maxKSimilarities.remove(key4);
+                                        maxKSimilarities.put(key2, value2);
+                                        break;
+                                    }
+                                }
                             }
                     }
-                    neighborsMap.put(key,neighbors);
-                    }
             }
+            for (Review key3:maxKSimilarities.keySet()) {
+                neighbors.add(key3);
+            }
+                neighborsMap.put(key,neighbors);
         }
     }
 
@@ -70,7 +73,6 @@ public class KnnImplementation {
      * @return an ArrayList
      */
     public ArrayList<Review> findClass() {
-        System.out.println(neighbors.size());
         for (Map.Entry<Review, ArrayList<Review>> entry : neighborsMap.entrySet()) {
             int newClass,i=0;
             positives = 0;
@@ -78,7 +80,6 @@ public class KnnImplementation {
             Review key = entry.getKey();
             ArrayList<Review> value = entry.getValue();
             for (Review r : value) {
-                System.out.println("! Doc's ID=" + key.get_id() +" neighbor's ID=" +r.get_id());
                 if (r.get_class() == 1) //1 for positive
                     positives++;
                 else
