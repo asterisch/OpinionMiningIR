@@ -60,7 +60,7 @@ public class CreateInverted
                 if (directory.isDirectory()) {
                     System.out.println("Analyzing: " + directory.getName());
                     for (File file : directory.listFiles()) {
-                        if (file.isFile() && !file.isHidden() && count < 1000) {
+                        if (file.isFile() && !file.isHidden() && count < 10000) {
                             doc = new Document();
                             temp1 = file.getName().split("_");
                             doc_id = temp1[0];

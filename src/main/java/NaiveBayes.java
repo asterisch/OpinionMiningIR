@@ -30,6 +30,12 @@ public class NaiveBayes
     private static PrimaryTreeMap<String,int[]> NBscores;
     public static void main(String[] args)
     {
+        File toClear=new File("NaiveBayes/");
+        for(File f:toClear.listFiles())
+        {
+            f.delete();
+        }
+        
         calculate_NB_scores();
 
         String temp1[],doc_id;int score,count=0,total=0,correct=0;BufferedReader in;double precision=0;

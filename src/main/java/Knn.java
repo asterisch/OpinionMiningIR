@@ -48,7 +48,7 @@ public class Knn {
         results=knn.findClass();
 
         Collections.sort(results, new Comparator<Review>() {
-            @Override
+            //@Override
             public int compare(Review review2, Review review1)
             {
 

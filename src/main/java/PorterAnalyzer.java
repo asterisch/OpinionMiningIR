@@ -60,10 +60,10 @@ public class PorterAnalyzer extends AnalyzerWrapper {
     {
 
         //Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
-        PorterAnalyzer analyzer = new PorterAnalyzer(new StandardAnalyzer());
+        PorterAnalyzer analyzer = new PorterAnalyzer(new EnglishAnalyzer());
         String text = "This is a stem testing example port. It should stem-tests the Porter stemmer version 111";
 
-        TokenStream ts = analyzer.tokenStream("fieldName", new StringReader(text));
+        TokenStream ts = analyzer.tokenStream("text", new StringReader(text));
         ts.reset();
 
         while (ts.incrementToken()){
