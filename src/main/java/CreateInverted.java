@@ -4,7 +4,9 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -23,7 +25,7 @@ public class CreateInverted
 {
     public static String index_path="/tmp/inverted_index";
     public static String data_path = "/home/steve/IdeaProjects/ProjectIR/data/train";
-
+    public static int examine = 10000;
     public static void main(String[] args)
     {
         if (args.length > 1 && args.length < 3)
@@ -60,7 +62,7 @@ public class CreateInverted
                 if (directory.isDirectory()) {
                     System.out.println("Analyzing: " + directory.getName());
                     for (File file : directory.listFiles()) {
-                        if (file.isFile() && !file.isHidden() && count < 10000) {
+                        if (file.isFile() && !file.isHidden() && count < examine) {
                             doc = new Document();
                             temp1 = file.getName().split("_");
                             doc_id = temp1[0];
@@ -68,8 +70,14 @@ public class CreateInverted
                             score = Integer.parseInt(temp1[0]);
                             in = new BufferedReader(new FileReader(data_path + "/" + directory.getName() + "/" + file.getName()));
                            // System.out.println(doc_id+" "+score);
+                            FieldType type = new FieldType();
+                            type.setStoreTermVectors(true);
+                            type.setStored(true);
+                            type.setTokenized(true);
+                            type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
                             doc.add(new Field("ID", doc_id, TextField.TYPE_STORED));
-                            doc.add(new Field("text", in.readLine(), TextField.TYPE_NOT_STORED));
+                            doc.add(new Field("text",in.readLine(),type));
+                            //doc.add(new Field("text", in.readLine(), TextField.TYPE_NOT_STORED));
                             doc.add(new Field("score", String.valueOf(score), TextField.TYPE_STORED));
 
                             iwriter.addDocument(doc);

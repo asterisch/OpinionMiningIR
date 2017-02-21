@@ -30,12 +30,7 @@ public class NaiveBayes
     private static PrimaryTreeMap<String,int[]> NBscores;
     public static void main(String[] args)
     {
-        File toClear=new File("NaiveBayes/");
-        for(File f:toClear.listFiles())
-        {
-            f.delete();
-        }
-        
+        clean(); // clear old database files
         calculate_NB_scores();
 
         String temp1[],doc_id;int score,count=0,total=0,correct=0;BufferedReader in;double precision=0;
@@ -108,7 +103,8 @@ public class NaiveBayes
                 }
             }
         }
-            System.out.println("Precision: "+(double)correct/(double)examine);
+        System.out.println("Precision: "+(double)correct/(double)examine);
+        clean();
         recMngr.close();
 
         } catch (IOException e) {
@@ -138,7 +134,7 @@ public class NaiveBayes
 
         TermQuery q;TotalHitCountCollector th;TopDocs docs;Document doc;
         try {
-            // Init JDBM PrimaryTree and RecordManager
+            //Init JDBM PrimaryTree and RecordManager
             //RecordManagerFactory.createRecordManager(recName);
             //RecordManager recMngr = new CacheRecordManager(new BaseRecordManager(recName),1000,true);
             recMngr = new BaseRecordManager(recName);
@@ -153,6 +149,7 @@ public class NaiveBayes
             // Calculate Naive Bayes score of each term
             while (term!=null)
             {
+
                 q = new TermQuery(new Term("text", term.utf8ToString()));
                 th = new TotalHitCountCollector();
                 searcher.search(q,th);
@@ -178,4 +175,12 @@ public class NaiveBayes
         }
     }
 
+    private static void clean()
+    {
+        File toClear=new File("NaiveBayes/");
+        for(File f:toClear.listFiles())
+        {
+            f.delete();
+        }
+    }
 }
