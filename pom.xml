@@ -58,7 +58,8 @@
             <artifactId>lucene-analyzers-common</artifactId>
             <version>6.4.1</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/jdbm/jdbm -->
+        <!-- https://mvnrepository.com/artifact/jdbm/jdbm -->
         <!--
         <dependency>
             <groupId>joda-time</groupId>
