@@ -31,6 +31,7 @@ public class KNN
 
     public static void main(String[] args)
     {
+        clean();
         train();
     }
     private static void train()
@@ -63,19 +64,15 @@ public class KNN
         }
         idf_vectors = recMngridf.treeMap(recNameidf);
         tfidf_vectors = recMngrtfidf.treeMap(recNametfidf);
-        // Get terms from lucene's Inverted Index
-        Terms terms = null;
+
         try {
-            terms = MultiFields.getTerms(reader,"text");
-            TermsEnum term_iter= terms.iterator();
-            BytesRef term = term_iter.next();
-            double max_tf=0,nidf,tf,ntf,tf_idf;
-            long freq,doc_size;
-            int doc_id;
-            int knn_class,periodic_commmit=0;
+            double nidf,tf,tf_idf,maxtf;
+            long freq;
+            int doc_id,periodic_commmit=0;
             HashMap<String,Double> tf_map;
-            term_iter=terms.iterator();
-            term=term_iter.next();
+            Terms termsVector;
+            TermsEnum itr;
+            BytesRef vterm;
             // query all docs
             q = new MatchAllDocsQuery();
             docs = searcher.search(q,reader.numDocs());
@@ -84,37 +81,40 @@ public class KNN
             {
                 doc_id = docs.scoreDocs[i].doc;
                 // get term vectors
-                Terms termsVector = reader.getTermVector(doc_id,"text");
+                termsVector = reader.getTermVector(doc_id,"text");
                 if(termsVector==null) continue;
-                TermsEnum itr=termsVector.iterator();
-                BytesRef vterm=itr.next();
+                itr=termsVector.iterator();
+                vterm=itr.next();
                 // for each term get tf
+                tf_map = tfidf_vectors.get(doc_id);
+                if(tf_map == null) tf_map = new HashMap<String, Double>();
+
                 while (vterm!=null)
                 {
                     tf=itr.totalTermFreq();
                     // store tf for each term of each document doc_id->(term->tf)
-                    tf_map = tfidf_vectors.get(doc_id);
-                    if(tf_map == null) tf_map = new HashMap<String, Double>();
-                    tf_map.put(term.utf8ToString(),tf);
-                    tfidf_vectors.put(doc_id,tf_map);
+                    tf_map.put(vterm.utf8ToString(),tf);
                     // idf for each unique word
                     if(!idf_vectors.containsKey(vterm.utf8ToString())) {
                         freq = reader.totalTermFreq(new Term("text", vterm.utf8ToString())); //term frequency
-                        nidf = Math.log((double) examine / freq) / Math.log(examine);
-                        idf_vectors.put(term.utf8ToString(), nidf);
+                        nidf = Math.log((double) 2*examine / (double) freq) / Math.log(2*examine);
+                        idf_vectors.put(vterm.utf8ToString(), nidf);
                     }
 
                     vterm=itr.next();
                 }
+                tfidf_vectors.put(doc_id,tf_map);
                 periodic_commmit++;
-                if(periodic_commmit>300)
+                if(periodic_commmit>500)
                 {
                     periodic_commmit=0;
                     recMngridf.commit();
                     recMngrtfidf.commit();
                 }
             }
-
+            recMngridf.commit();
+            recMngrtfidf.commit();
+            System.out.println("Normalizing tf*idf scores");
             for(Integer d_id:tfidf_vectors.keySet())
             {
                 tf_map = tfidf_vectors.get(d_id);
@@ -122,13 +122,16 @@ public class KNN
                 {
                     tf=tf_map.get(t);
                     nidf=idf_vectors.get(t);
-                    double maxtf=Collections.max(tf_map.values());
-                    tf_idf = (tf/max_tf) * nidf;
+                    maxtf=Collections.max(tf_map.values());
+                    tf_idf = (tf/maxtf) * nidf;
                     tf_map.put(t,tf_idf);
                     periodic_commmit++;
+                    /*if(periodic_commmit%400==0)
+                    {
+                        System.out.println(d_id+" "+t+" "+tf+" "+nidf+" "+tf_idf);
+                    }*/
                 }
                 tfidf_vectors.put(d_id,tf_map);
-                System.out.println(d_id+" "+tf_map);
                 if(periodic_commmit>500)
                 {
                     periodic_commmit=0;
@@ -141,7 +144,7 @@ public class KNN
             recMngrtfidf.close();
             recMngridf.commit();
             recMngridf.close();
-            clean();
+            //clean();
             /*
             while(term!=null)
             {
