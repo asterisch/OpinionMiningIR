@@ -39,12 +39,12 @@ public class Rocchio
             System.out.println("Training");
             KNN.train();
         }
-        /*System.out.println("Finding Leaders of every class ");
+        System.out.println("Finding Leaders of every class ");
         try {
             centroid();
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
+        }
         HashMap<String, Double> centers;
         try {
             recMngrCenter =new BaseRecordManager(recNameCenter);
@@ -61,6 +61,7 @@ public class Rocchio
         BufferedReader in;
         String line;
         StringBuilder ss;
+        String temp1[],doc_id;int score;
         PorterAnalyzer analyzer = new PorterAnalyzer(new EnglishAnalyzer());
         TokenStream ts;
         String term;
@@ -74,6 +75,10 @@ public class Rocchio
                 for (File file : directory.listFiles()) {
                     if (file.isFile() && !file.isHidden() && count < examine) {
                         try {
+                            temp1 = file.getName().split("_");
+                            doc_id = temp1[0];
+                            temp1 = temp1[1].split(".txt");
+                            score = Integer.parseInt(temp1[0]);
                             in = new BufferedReader(new FileReader(CreateInverted.data_path + "/" + directory.getName() + "/" + file.getName()));
                             ss = new StringBuilder();
                             docQuery = new HashMap<String, Double>();
@@ -90,7 +95,6 @@ public class Rocchio
                                     double tf = docQuery.get(term).doubleValue() + 1;
                                     docQuery.put(term, tf);
                                 } else {
-                                    // Examine for tok K similar docs only the docs that contain at least one term of the queryDoc
                                     docQuery.put(term, 1.0);
                                 }
                             }
@@ -98,14 +102,14 @@ public class Rocchio
                             // Calculate query tf idf scores (Salton & Buckley method)
                             for (String trm : docQuery.keySet()) {
                                 double index_idf = idf_vectors.get(trm).doubleValue();
-                                double qIdf = (0.5 * (docQuery.get(trm) / maxtf) + 0.5) * index_idf;
+                                double qIdf = ((docQuery.get(trm) / maxtf)) * index_idf;
                                 docQuery.put(trm, qIdf);
                             }
                             double maxsim=0;int to_class=0;
                             for (int i = 0; i < 10; i++) {
                                 centers = center_vectors.get(i);
                                 if(centers==null) continue;
-                                double dot=1,Qnorm=1,Dnorm=1,sim;
+                                double dot=0,Qnorm=0,Dnorm=0,sim;
                                 for (String qterm : docQuery.keySet()) {
                                     if(centers.containsKey(qterm))
                                     {
@@ -121,7 +125,7 @@ public class Rocchio
                                     to_class=i;
                                 }
                             }
-                            if(dir_name.equals("pos"))
+                            if(score>5)
                             {
                                 if(to_class>5) correct++;
                             }
@@ -216,7 +220,7 @@ public class Rocchio
                 entry.setValue(entry.getValue()/(double) docs_in_class[i]);
             }
             center_vectors.put(i,centers);
-            System.out.println(centers);
+            //System.out.println(centers);
         }
 
         reader.close();

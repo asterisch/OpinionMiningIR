@@ -100,8 +100,8 @@ public class KNN
                                     term = ca.toString();
                                     if(docQuery.containsKey(term))
                                     {
-                                        tf = docQuery.get(term).doubleValue();
-                                        docQuery.put(term,++tf);
+                                        tf = docQuery.get(term).doubleValue()+1;
+                                        docQuery.put(term,tf);
                                     }
                                     else
                                     {
@@ -121,7 +121,7 @@ public class KNN
                                 for(String trm: docQuery.keySet())
                                 {
                                     index_idf = idf_vectors.get(trm).doubleValue();
-                                    qIdf= ( 0.5 * (docQuery.get(trm) / maxtf) + 0.5 )*index_idf;
+                                    qIdf= ((docQuery.get(trm) / maxtf) )*index_idf;
                                     docQuery.put(trm,qIdf);
                                 }
                                 // find top k with cosine similarity
@@ -256,15 +256,31 @@ public class KNN
                 tf_map = tfidf_vectors.get(doc_id);
                 if(tf_map == null) tf_map = new HashMap<String, Double>();
 
+                PostingsEnum docEnum = null;
+
                 while (vterm!=null)
                 {
-                    tf=itr.totalTermFreq();
-                    // store tf for each term of each document doc_id->(term->tf)
-                    tf_map.put(vterm.utf8ToString(),tf);
+
                     // idf for each unique word
                     if(!idf_vectors.containsKey(vterm.utf8ToString())) {
-                        freq = reader.totalTermFreq(new Term("text", vterm.utf8ToString())); //term frequency
-                        nidf = Math.log((double) (2*examine) / (double) freq) / Math.log(2*examine);
+                        tf=0;
+                        try {
+                            docEnum = MultiFields.getTermDocsEnum(reader, "text", vterm);
+                            int doc_s = PostingsEnum.NO_MORE_DOCS;
+                            while ((doc_s = docEnum.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
+                                if(docEnum.docID()==doc_id)
+                                {
+                                    tf=docEnum.freq();
+                                    break;
+                                }
+                            }
+                        }catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        // store tf for each term of each document doc_id->(term->tf)
+                        tf_map.put(vterm.utf8ToString(),tf);
+                        freq = reader.docFreq(new Term("text", vterm.utf8ToString())); //inverse term frequency
+                        nidf = Math.log10((double) (2*examine) / (double) freq) / Math.log10(2*examine);
                         idf_vectors.put(vterm.utf8ToString(), nidf);
                     }
 

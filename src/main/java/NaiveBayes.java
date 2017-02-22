@@ -40,7 +40,6 @@ public class NaiveBayes
         PorterAnalyzer analyzer  = new PorterAnalyzer(new EnglishAnalyzer());
         TokenStream ts;
         int []scores;
-        HashSet<Integer>[] dist = new HashSet [10];
         try {
             recMngr=new BaseRecordManager(recName);
             NBscores = recMngr.treeMap(recName);
@@ -57,7 +56,6 @@ public class NaiveBayes
                 for (File file : directory.listFiles()) {
                     if (file.isFile() && !file.isHidden() && count<examine) { // && count<examine
                         ss=new StringBuilder();
-                        for(int i=0;i<10;i++) dist[i]=new HashSet<Integer>();
                         temp1 = file.getName().split("_");
                         doc_id = temp1[0];
                         temp1 = temp1[1].split(".txt");
@@ -90,9 +88,9 @@ public class NaiveBayes
                                 max = classProb[i];
                                 toclass = i + 1;
                             }}
-                            if(dir_name.equals("pos"))
+                            if(score>5)
                             {
-                                if(toclass>=5) correct++;
+                                if(toclass>5) correct++;
                             }
                             else
                             {
