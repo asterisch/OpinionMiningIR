@@ -1,17 +1,17 @@
 import jdbm.PrimaryTreeMap;
 import jdbm.RecordManager;
 import jdbm.recman.BaseRecordManager;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Created by steve on 21/2/2017.
@@ -20,19 +20,22 @@ public class Rocchio
 {
     private static PrimaryTreeMap<Integer,HashMap<String,Double>> tfidf_vectors;
     private static PrimaryTreeMap<Integer,HashMap<String,Double>> center_vectors;
+    private static PrimaryTreeMap<String,Double> idf_vectors;
+
     private static RecordManager recMngrCenter;
     private static RecordManager recMngrtfidf;
+    private static RecordManager recMngridf;
+
     private static int examine=CreateInverted.examine;
     private static String recNametfidf =KNN.recNametfidf;
     private static String recNameCenter="Rocchio/centers";
+    private static String recNameidf="Knn/terms_idf";
+
 
     public static void main(String[] args) {
-        if(existKnn())
-        {
+        if (existKnn()) {
             System.out.println("Using Vector Model from Knn");
-        }
-        else
-        {
+        } else {
             System.out.println("Training");
             KNN.train();
         }
@@ -42,7 +45,26 @@ public class Rocchio
         } catch (IOException e) {
             e.printStackTrace();
         }*/
-        int count;
+        HashMap<String, Double> centers;
+        try {
+            recMngrCenter =new BaseRecordManager(recNameCenter);
+            center_vectors=recMngrCenter.treeMap(recNameCenter);
+            recMngridf=new BaseRecordManager(recNameidf);
+            idf_vectors=recMngridf.treeMap(recNameidf);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        int count=0,correct=0;
+        BufferedReader in;
+        String line;
+        StringBuilder ss;
+        PorterAnalyzer analyzer = new PorterAnalyzer(new EnglishAnalyzer());
+        TokenStream ts;
+        String term;
+        HashMap<String, Double> docQuery;
         File folder = new File(CreateInverted.data_path);
         for (File directory : folder.listFiles()) {
             if (directory.isDirectory()) {
@@ -51,11 +73,79 @@ public class Rocchio
                 count = 0;
                 for (File file : directory.listFiles()) {
                     if (file.isFile() && !file.isHidden() && count < examine) {
+                        try {
+                            in = new BufferedReader(new FileReader(CreateInverted.data_path + "/" + directory.getName() + "/" + file.getName()));
+                            ss = new StringBuilder();
+                            docQuery = new HashMap<String, Double>();
+
+                            while ((line = in.readLine()) != null) {
+                                ss.append(line);
+                            }
+                            ts = analyzer.tokenStream("fieldName", new StringReader(ss.toString()));
+                            ts.reset();
+                            while (ts.incrementToken()) {
+                                CharTermAttribute ca = ts.getAttribute(CharTermAttribute.class);
+                                term = ca.toString();
+                                if (docQuery.containsKey(term)) {
+                                    double tf = docQuery.get(term).doubleValue() + 1;
+                                    docQuery.put(term, tf);
+                                } else {
+                                    // Examine for tok K similar docs only the docs that contain at least one term of the queryDoc
+                                    docQuery.put(term, 1.0);
+                                }
+                            }
+                            double maxtf = Collections.max(docQuery.values());
+                            // Calculate query tf idf scores (Salton & Buckley method)
+                            for (String trm : docQuery.keySet()) {
+                                double index_idf = idf_vectors.get(trm).doubleValue();
+                                double qIdf = (0.5 * (docQuery.get(trm) / maxtf) + 0.5) * index_idf;
+                                docQuery.put(trm, qIdf);
+                            }
+                            double maxsim=0;int to_class=0;
+                            for (int i = 0; i < 10; i++) {
+                                centers = center_vectors.get(i);
+                                if(centers==null) continue;
+                                double dot=1,Qnorm=1,Dnorm=1,sim;
+                                for (String qterm : docQuery.keySet()) {
+                                    if(centers.containsKey(qterm))
+                                    {
+                                        dot+=centers.get(qterm)*docQuery.get(qterm);
+                                        Qnorm+=Math.pow(docQuery.get(qterm),2);
+                                        Dnorm+=Math.pow(centers.get(qterm),2);
+                                    }
+                                }
+                                sim=dot / (Math.sqrt(Qnorm)*Math.sqrt(Dnorm));
+                                if(sim>maxsim)
+                                {
+                                    maxsim=sim;
+                                    to_class=i;
+                                }
+                            }
+                            if(dir_name.equals("pos"))
+                            {
+                                if(to_class>5) correct++;
+                            }
+                            else
+                            {
+                                if(to_class<5) correct++;
+                            }
+                            ss.delete(0, ss.length());
+                            ss = null;
+
+                        } catch (IOException e) {
+
+                        }
                         count++;
                     }
-
                 }
             }
+        }
+        System.out.println(correct+" "+(2*count));
+        System.out.println("Precision: "+(double)correct/(double)(2*count));
+        try {
+            recMngrCenter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -65,10 +155,7 @@ public class Rocchio
         recMngrCenter=new BaseRecordManager(recNameCenter);
         tfidf_vectors = recMngrtfidf.treeMap(recNametfidf);
         center_vectors=recMngrCenter.treeMap(recNameCenter);
-        String term_idf_name="Rocchio/temp";
-        PrimaryTreeMap<String,Double> term_idf;
-        RecordManager term_idf_recMngr=new BaseRecordManager(term_idf_name);
-        term_idf=term_idf_recMngr.treeMap(term_idf_name);
+
         Directory dir=null;
         try {
             dir = FSDirectory.open(Paths.get(CreateInverted.index_path));
