@@ -25,29 +25,38 @@ public class NaiveBayes
 {
     public static String data_path = "/home/steve/IdeaProjects/ProjectIR/data/train";
     private static String recName="NaiveBayes/NB_scores";
-    private static int examine=10000;
+    private static int examine=5000;
     private static RecordManager recMngr;
     private static PrimaryTreeMap<String,int[]> NBscores;
+    private static final String tscode="1_total_class_scores_1";
+    private static final String tcode="1_total_1";
     public static void main(String[] args)
     {
         clean(); // clear old database files
-        calculate_NB_scores();
+        System.out.println("Training");
+        calculate_NB_scores(); // train system via lucene reverse index
 
-        String temp1[],doc_id;int score,count=0,total=0,correct=0;BufferedReader in;double precision=0;
+        String temp1[],doc_id;int score,count=0,correct=0;BufferedReader in;double precision=0;
         PorterAnalyzer analyzer  = new PorterAnalyzer(new EnglishAnalyzer());
         TokenStream ts;
-        int[] total_class_scores=new int[10],scores;
+        int []scores;
         HashSet<Integer>[] dist = new HashSet [10];
         try {
             recMngr=new BaseRecordManager(recName);
             NBscores = recMngr.treeMap(recName);
+            int[] total_class_scores=NBscores.get(tscode);
+            int[] temp = NBscores.get(tcode);
+            int total=temp[0];
+            String line;StringBuilder ss;
         File folder = new File(data_path);
         for (File directory : folder.listFiles()) {
             if (directory.isDirectory()) {
                 String dir_name=directory.getName();
                 System.out.println("Analyzing: " + directory.getName());
+                count=0;
                 for (File file : directory.listFiles()) {
-                    if (file.isFile() && !file.isHidden() && count < examine) {
+                    if (file.isFile() && !file.isHidden()) { // && count<examine
+                        ss=new StringBuilder();
                         for(int i=0;i<10;i++) dist[i]=new HashSet<Integer>();
                         temp1 = file.getName().split("_");
                         doc_id = temp1[0];
@@ -55,34 +64,32 @@ public class NaiveBayes
                         score = Integer.parseInt(temp1[0]);
                         try {
                             in = new BufferedReader(new FileReader(data_path + "/" + directory.getName() + "/" + file.getName()));
-                            ts = analyzer.tokenStream("fieldName", new StringReader(in.readLine()));
+                            while ((line=in.readLine())!=null)
+                            {
+                                ss.append(line);
+                            }
+                            ts = analyzer.tokenStream("fieldName", new StringReader(ss.toString()));
                             ts.reset();
+                            double classProb[] = new double[10];
+                            for(int i=0;i<10;i++) {
+                                classProb[i]=(double)total_class_scores[i]/(double)total;
+                            }
+                            int toclass=0;double max=0;
                             while (ts.incrementToken()) {
                                 CharTermAttribute ca = ts.getAttribute(CharTermAttribute.class);
                                 scores = NBscores.get(ca.toString());
+                                if(scores==null) continue;
                                 for(int i=0;i<10;i++)
                                 {
-                                    if(scores[i]!=0) dist[i].add(scores[i]);
-                                    total_class_scores[i]+=scores[i];
-                                    total+=scores[i];
+                                    if(scores[i]!=0)
+                                    classProb[i]*=Math.log10((double)total_class_scores[i]/(double)scores[i]);
                                 }
                             }
-                            int toclass=0;double max=0,prob=1;
-                            for(int i=0;i<10;i++) {
-                                prob=1;
-                                double classProp=(double) total_class_scores[i]/(double)total;
-                                for (Integer num : dist[i])
-                                {
-                                    prob*=Math.log10((double)num/(double)total_class_scores[i]);
-                                }
-                                prob*=classProp;
-                                if(prob>max)
-                                {
-                                    max=prob;
-                                    toclass=i+1;
-                                }
-                            }
-                            //System.out.println(doc_id+" "+score+" "+toclass);
+                            for (int i=0;i<10;i++){
+                            if(classProb[i]>max) {
+                                max = classProb[i];
+                                toclass = i + 1;
+                            }}
                             if(dir_name.equals("pos"))
                             {
                                 if(toclass>=5) correct++;
@@ -97,15 +104,17 @@ public class NaiveBayes
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-
+                        ss.delete(0,ss.length());
+                        ss=null;
                         count++;
                     }
                 }
             }
         }
-        System.out.println("Precision: "+(double)correct/(double)examine);
-        clean();
+        System.out.println(correct+" "+2*count);
+        System.out.println("Precision: "+(double)correct/(double)(2*count)); // count is of every class and totally there are 2 classes pos/neg
         recMngr.close();
+        //clean();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -145,7 +154,7 @@ public class NaiveBayes
             // some vars
             BytesRef term = term_iter.next();
             int nb_class,periodic_commmit=0;
-            int [] term_freqs;
+            int [] term_freqs,total_class_scores=new int[10],total=new int[1];
             // Calculate Naive Bayes score of each term
             while (term!=null)
             {
@@ -160,12 +169,20 @@ public class NaiveBayes
                     doc = searcher.doc(docs.scoreDocs[i].doc);
                     nb_class=Integer.valueOf(doc.get("score"));
                     term_freqs[nb_class-1]++; // count term's frequency in every class
+                    total_class_scores[nb_class-1]++;
+                    total[0]++;
+
                 }
                 NBscores.put(term.utf8ToString(),term_freqs); // store term and it's count in score scale
-                if(periodic_commmit==300) recMngr.commit();periodic_commmit=0; // Perform periodic commits on the database
+                if(periodic_commmit==500) {
+                    recMngr.commit();
+                    periodic_commmit = 0; // Perform periodic commits on the database
+                }
                 periodic_commmit++;
                 term=term_iter.next(); // next term returned from lucene
             }
+            NBscores.put(tscode,total_class_scores);
+            NBscores.put(tcode,total);
             // Calculate NB prior probabilities
             recMngr.close();
 
