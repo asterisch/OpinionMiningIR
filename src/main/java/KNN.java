@@ -308,6 +308,8 @@ public class KNN
             recMngrtfidf.close();
             recMngridf.commit();
             recMngridf.close();
+            reader.close();
+            dir.close();
             //clean();
             /*
             while(term!=null)
