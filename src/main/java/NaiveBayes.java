@@ -141,9 +141,7 @@ public class NaiveBayes
 
         TermQuery q;TotalHitCountCollector th;TopDocs docs;Document doc;
         try {
-            //Init JDBM PrimaryTree and RecordManager
-            //RecordManagerFactory.createRecordManager(recName);
-            //RecordManager recMngr = new CacheRecordManager(new BaseRecordManager(recName),1000,true);
+            // Inita JDBM
             recMngr = new BaseRecordManager(recName);
             NBscores = recMngr.treeMap(recName);
             // Get terms from lucene's Inverted Index

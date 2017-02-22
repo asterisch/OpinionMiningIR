@@ -39,7 +39,7 @@ public class Rocchio
             System.out.println("Training");
             KNN.train();
         }
-        System.out.println("Finding Leaders of every class ");
+        System.out.println("Finding centroids of every class ");
         try {
             centroid();
         } catch (IOException e) {
@@ -56,7 +56,7 @@ public class Rocchio
             e.printStackTrace();
             System.exit(-1);
         }
-
+        //vars
         int count=0,correct=0;
         BufferedReader in;
         String line;
@@ -66,6 +66,7 @@ public class Rocchio
         TokenStream ts;
         String term;
         HashMap<String, Double> docQuery;
+        // Test training set
         File folder = new File(CreateInverted.data_path);
         for (File directory : folder.listFiles()) {
             if (directory.isDirectory()) {
@@ -154,12 +155,14 @@ public class Rocchio
 
     }
     private static void centroid() throws IOException {
+        //clear old data
         clean();
+        // init JDBM DBs
         recMngrtfidf= new BaseRecordManager(recNametfidf);
         recMngrCenter=new BaseRecordManager(recNameCenter);
         tfidf_vectors = recMngrtfidf.treeMap(recNametfidf);
         center_vectors=recMngrCenter.treeMap(recNameCenter);
-
+        // Open lucene
         Directory dir=null;
         try {
             dir = FSDirectory.open(Paths.get(CreateInverted.index_path));
@@ -180,11 +183,12 @@ public class Rocchio
         HashMap<String,Double> tfidf_map = null,centers=null;
         int doc_class;int[] docs_in_class=new int[10];int periodic_commit=0;
         int count =0;
+        // Calculate centroid for each class
         for(Integer i : tfidf_vectors.keySet())
         {
             doc_class=Integer.valueOf(reader.document(i).get("score"))-1;
 
-            docs_in_class[doc_class]++;
+            docs_in_class[doc_class]++; //count docs in each class
             tfidf_map=tfidf_vectors.get(i);
             centers=center_vectors.get(doc_class);
             if(centers==null) centers=new HashMap<String, Double>();
@@ -194,7 +198,7 @@ public class Rocchio
                 {
                     double center_tfidf =centers.get(term);
                     double index_tfidf=tfidf_map.get(term);
-                    centers.put(term,center_tfidf+index_tfidf);
+                    centers.put(term,center_tfidf+index_tfidf); // sum up tfidf of each term on every class
                 }
                 else
                 {

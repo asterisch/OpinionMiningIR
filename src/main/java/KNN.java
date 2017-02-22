@@ -24,15 +24,12 @@ public class KNN
 
     public static String recNametfidf ="Knn/tfidf_vectors";
     private static String recNameidf="Knn/terms_idf";
-    private static String recNameSim="Knn/similarities";
     private static int K=5;
     private static int examine=CreateInverted.examine;
     private static RecordManager recMngridf;
     private static RecordManager recMngrtfidf;
-    private static RecordManager recMngrSim;
     private static PrimaryTreeMap<Integer,HashMap<String,Double>> tfidf_vectors;
     private static PrimaryTreeMap<String,Double> idf_vectors;
-    private static PrimaryTreeMap<Integer,Double> similarites;
 
     public static void main(String[] args)
     {
@@ -63,10 +60,8 @@ public class KNN
         try {
             recMngrtfidf=new BaseRecordManager(recNametfidf);
             recMngridf= new BaseRecordManager(recNameidf);
-           // recMngrSim = new BaseRecordManager(recNameSim);
             tfidf_vectors = recMngrtfidf.treeMap(recNametfidf);
             idf_vectors=recMngridf.treeMap(recNameidf);
-           // similarites=recMngrSim.treeMap(recNameSim);
             HashSet<Integer> docs_to_examine;
             HashMap<String,Double> index_doc;
             String line;StringBuilder ss;
@@ -173,8 +168,6 @@ public class KNN
                                     if(pos<neg) correct++;
                                 }
 
-                                //recMngrSim.commit();
-
 
                             } catch (FileNotFoundException e) {
                                 e.printStackTrace();
@@ -195,7 +188,6 @@ public class KNN
             recMngrtfidf.close();
             reader.close();
             dir.close();
-            //clean();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -282,13 +274,13 @@ public class KNN
                         freq = reader.docFreq(new Term("text", vterm.utf8ToString())); //inverse term frequency
                         nidf = Math.log10((double) (2*examine) / (double) freq) / Math.log10(2*examine);
                         idf_vectors.put(vterm.utf8ToString(), nidf);
+                        periodic_commmit++;
                     }
 
                     vterm=itr.next();
                 }
                 tfidf_vectors.put(doc_id,tf_map);
-                periodic_commmit++;
-                if(periodic_commmit>500)
+                if(periodic_commmit>5000)
                 {
                     periodic_commmit=0;
                     recMngridf.commit();
@@ -326,42 +318,6 @@ public class KNN
             recMngridf.close();
             reader.close();
             dir.close();
-            //clean();
-            /*
-            while(term!=null)
-            {
-                q = new TermQuery(new Term("text", term.utf8ToString()));
-                th = new TotalHitCountCollector();
-                searcher.search(q,th);
-                docs = searcher.search(q,Math.max(1,th.getTotalHits()));
-                // store map of term->idf (for each term obviously)
-
-                //loop over documents of a term
-                for(int i=0;i<docs.scoreDocs.length;i++)
-                {
-
-                    while
-                    tf=term_iter.totalTermFreq();
-                    System.out.println(doc_id+" "+tf);
-                    // store for each document a map on term->tf
-                    HashMap<String,Double> tf_map = tfidf_vectors.get(doc_id);
-                    if(tf_map == null) tf_map = new HashMap<String, Double>();
-                    tf_map.put(term.utf8ToString(),tf);
-                    tfidf_vectors.put(doc_id,tf_map);
-                }
-                term=term_iter.next();
-            }
-            for(Integer did:tfidf_vectors.keySet())
-            {
-                HashMap<String,Double> term_set=tfidf_vectors.get(did);
-                double maxtf= Collections.max(term_set.values());
-                for(String t: term_set.keySet())
-                {
-                    double tfidf = term_set.get(t).doubleValue()*idf_vectors.get(t).doubleValue();
-                    term_set.put(t,tfidf);
-                }
-            }
-            */
 
         } catch (IOException e) {
             e.printStackTrace();
