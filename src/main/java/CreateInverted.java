@@ -23,9 +23,9 @@ import java.nio.file.Paths;
  */
 public class CreateInverted
 {
-    public static String index_path="/tmp/inverted_index";
+    public static String index_path="/home/steve/IdeaProjects/inverted_index";
     public static String data_path = "/home/steve/IdeaProjects/ProjectIR/data/train";
-    public static int examine = 10000;
+    public static int examine=5000;
     public static void main(String[] args)
     {
         if (args.length > 1 && args.length < 3)
@@ -55,28 +55,35 @@ public class CreateInverted
 
 
         Document doc;
-
+            FieldType type = new FieldType();
+            type.setStoreTermVectors(true);
+            type.setStored(true);
+            type.setTokenized(true);
+            type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
+        StringBuilder ss;String line;
         BufferedReader in;
         File folder = new File(data_path);
             for (File directory : folder.listFiles()) {
                 if (directory.isDirectory()) {
                     System.out.println("Analyzing: " + directory.getName());
+                    count=0;
                     for (File file : directory.listFiles()) {
-                        if (file.isFile() && !file.isHidden() && count < examine) {
+                        if (file.isFile() && !file.isHidden()&& count<examine) {
                             doc = new Document();
+                            ss=new StringBuilder();
                             temp1 = file.getName().split("_");
                             doc_id = temp1[0];
                             temp1 = temp1[1].split(".txt");
                             score = Integer.parseInt(temp1[0]);
                             in = new BufferedReader(new FileReader(data_path + "/" + directory.getName() + "/" + file.getName()));
                            // System.out.println(doc_id+" "+score);
-                            FieldType type = new FieldType();
-                            type.setStoreTermVectors(true);
-                            type.setStored(true);
-                            type.setTokenized(true);
-                            type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
+                            while((line =in.readLine())!=null)
+                            {
+                                ss.append(line);
+                            }
+
                             doc.add(new Field("ID", doc_id, TextField.TYPE_STORED));
-                            doc.add(new Field("text",in.readLine(),type));
+                            doc.add(new Field("text",ss.toString(),type));
                             //doc.add(new Field("text", in.readLine(), TextField.TYPE_NOT_STORED));
                             doc.add(new Field("score", String.valueOf(score), TextField.TYPE_STORED));
 
@@ -84,6 +91,8 @@ public class CreateInverted
                             doc = null;
                             in = null;
                             count++;
+                            ss.delete(0,ss.length());
+                            ss=null;
                         }
 
 
@@ -92,6 +101,7 @@ public class CreateInverted
             }
             iwriter.commit();
             iwriter.close();
+            System.out.println("Created Inverted Index of "+2*count+" documents");
         }catch (IOException e)
         {
             System.err.println("[-] Error writing documents to inverted index");

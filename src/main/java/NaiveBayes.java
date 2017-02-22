@@ -25,7 +25,7 @@ public class NaiveBayes
 {
     public static String data_path = "/home/steve/IdeaProjects/ProjectIR/data/train";
     private static String recName="NaiveBayes/NB_scores";
-    private static int examine=5000;
+    private static int examine=CreateInverted.examine;
     private static RecordManager recMngr;
     private static PrimaryTreeMap<String,int[]> NBscores;
     private static final String tscode="1_total_class_scores_1";
@@ -55,7 +55,7 @@ public class NaiveBayes
                 System.out.println("Analyzing: " + directory.getName());
                 count=0;
                 for (File file : directory.listFiles()) {
-                    if (file.isFile() && !file.isHidden()) { // && count<examine
+                    if (file.isFile() && !file.isHidden() && count<examine) { // && count<examine
                         ss=new StringBuilder();
                         for(int i=0;i<10;i++) dist[i]=new HashSet<Integer>();
                         temp1 = file.getName().split("_");
